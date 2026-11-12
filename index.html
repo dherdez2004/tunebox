@@ -559,7 +559,7 @@ function stopAll() { try { audio.pause(); } catch { } if (P.yt && P.ytReady) try
 async function playAt(i) {
   finishCurrent();
   const t = P.queue[i]; if (!t) return;
-  P.idx = i; P.cur = t; P.logged = false; P.started = Date.now(); P.preview = false; const my = ++playSeq;
+  P.idx = i; P.cur = t; P.logged = false; P.userPaused = false; P.started = Date.now(); P.preview = false; const my = ++playSeq;
   stopAll(); paintNow(); markSeen([t.key]);
   if (t.source === 'local') return playAudio(URL.createObjectURL(Lib.files.get(t.id)), true);
   // full song via YouTube
@@ -585,10 +585,10 @@ function playAudio(url, isBlob) {
 function finishCurrent() { const t = P.cur; if (t && !P.logged && pos() < 30 && Date.now() - P.started > 2000) logSkip(t); }
 function pos() { if (P.mode === 'yt' && P.yt && P.ytReady) { try { return P.yt.getCurrentTime() || 0; } catch { return 0; } } return audio.currentTime || 0; }
 function dur() { if (P.mode === 'yt' && P.yt && P.ytReady) { try { return P.yt.getDuration() || 0; } catch { return 0; } } return isFinite(audio.duration) ? audio.duration : 0; }
-function isPlaying() { if (P.mode === 'yt' && P.yt && P.ytReady) { try { const s = P.yt.getPlayerState(); return s === 1 || s === 3; } catch { return false; } } return !audio.paused; }
+function isPlaying() { if (P.mode === 'yt' && P.yt && P.ytReady) { try { const s = P.yt.getPlayerState(); return s === 1 || s === 3 || (s === -1 && !P.userPaused); } catch { return false; } } return !audio.paused; }
 function togglePlay() {
   if (!P.cur) { const l = curList.length ? curList : []; if (l.length) return playList(l, 0); return toast('Pick a song to play'); }
-  if (P.mode === 'yt' && P.yt) { isPlaying() ? P.yt.pauseVideo() : P.yt.playVideo(); } else { audio.paused ? audio.play() : audio.pause(); }
+  if (P.mode === 'yt' && P.yt) { if (isPlaying()) { P.userPaused = true; P.yt.pauseVideo(); } else { P.userPaused = false; P.yt.playVideo(); } } else { audio.paused ? audio.play() : audio.pause(); }
   setTimeout(updatePlayIcons, 120);
 }
 function next(auto) {
